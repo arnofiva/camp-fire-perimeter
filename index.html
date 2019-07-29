@@ -1,0 +1,124 @@
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ArcGIS JavaScript 4.11</title>
+
+  <style>
+    html, body, #viewDiv {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.12/esri/themes/light/main.css">
+  <script src="https://js.arcgis.com/4.12/"></script>
+
+  <script>
+    require([
+      "esri/WebScene",
+      "esri/Map",
+      "esri/views/SceneView",
+      "esri/layers/WMSLayer",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/Search",
+      "esri/widgets/TimeSlider"
+    ], function(
+      WebScene,
+      Map,
+      SceneView,
+      WMSLayer,
+      FeatureLayer,
+      Search,
+      TimeSlider
+    ) {
+      var map = new WebScene({
+        type: "feature",
+        portalItem: {
+          id: "49daf794bc0c4fc8bd62008c919819fb"
+        }
+      });
+
+      var view = new SceneView({
+        container: "viewDiv",
+        qualityProfile: "high",
+        environment: {
+          atmosphere: {
+            quality: "high"
+          }
+        },
+        map: map
+      });
+
+      const timeSlider = new TimeSlider({
+        container: "timeSlider",
+        mode: "instant",
+        fullTimeExtent: {
+          start: new Date(Date.UTC(2018, 10, 7, 0, 0)),
+          end: new Date(Date.UTC(2018, 10, 21, 0, 0))
+        },
+        values: [new Date(Date.UTC(2018, 10, 7, 0, 0))],
+        stops: {
+          interval: {
+            value: 1,
+            unit: "days"
+          }
+        }
+      });
+
+      view.ui.add(timeSlider, "manual");
+      map.when().then(function() {
+
+        var layer = map.layers.getItemAt(0);
+
+        view.whenLayerView(layer).then(function(layerView) {
+          layer.timeInfo = {
+            startField: "Date_", // name of the date field
+            endField: "Date_",
+            // interval: {
+            //   unit: "days"
+            // }
+          };
+
+          layerView.filter = {
+            timeExtent: timeSlider.timeExtent
+          };
+          timeSlider.watch("timeExtent", function(value) {
+            // update layerview filter to reflect current timeExtent
+            var start = new Date(Date.UTC(2018, 10, 7, 0, 0));// new Date(value.start);
+            var end = new Date(value.start);
+            end = end.setDate(end.getDate() + 1);
+            layerView.filter = {
+              timeExtent: {
+                start,
+                end
+              }
+            };
+          });
+        });
+      });
+
+      view.when().then(function() {
+        view.popup.defaultPopupTemplateEnabled = true;
+        // view.popup.dockEnabled = true;
+        // view.popup.dockOptions.position = "bottom-right";
+
+        //view.popup.watch("features", console.log.bind("Popup"));
+      });
+
+
+    });
+
+  </script>
+
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="timeSlider"></div>
+</body>
+
+</html>
