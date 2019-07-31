@@ -61,6 +61,7 @@ require([
 
     layerViews.forEach(function(lv) {
 
+      // Use `dateTime` for all cases to have a substractive animation for all perimeters
       var start = lv.layer.geometryType === "polyline" ? dateTime : sliderStart;
 
       lv.filter = {
