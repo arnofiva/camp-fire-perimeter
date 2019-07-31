@@ -60,52 +60,71 @@
         map: map
       });
 
+      const intervalHours = 24;
+      const sliderStart = new Date(Date.UTC(2018, 10, 7, 0, 0));
+      const sliderEnd = new Date(Date.UTC(2018, 10, 21, 0, 0));
       const timeSlider = new TimeSlider({
         container: "timeSlider",
         mode: "instant",
         fullTimeExtent: {
-          start: new Date(Date.UTC(2018, 10, 7, 0, 0)),
-          end: new Date(Date.UTC(2018, 10, 21, 0, 0))
+          start: sliderStart,
+          end: sliderEnd,
         },
-        values: [new Date(Date.UTC(2018, 10, 7, 0, 0))],
+        values: [sliderStart],
         stops: {
           interval: {
-            value: 1,
-            unit: "days"
+            value: intervalHours,
+            unit: "hours"
           }
         }
       });
-
       view.ui.add(timeSlider, "manual");
+
+      var layerViews = [];
+
+      function updateLayerViews(dateTime) {
+        var end = new Date(dateTime);
+        end = end.setHours(end.getHours() + intervalHours);
+
+        layerViews.forEach(function(lv) {
+
+          var start = lv.layer.geometryType === "polyline" ? dateTime : sliderStart;
+
+          lv.filter = {
+            timeExtent: {
+              start,
+              end
+            }
+          };
+        });
+      }
+
       map.when().then(function() {
 
-        var layer = map.layers.getItemAt(0);
+        map.layers.forEach(function(layer) {
 
-        view.whenLayerView(layer).then(function(layerView) {
-          layer.timeInfo = {
-            startField: "Date_", // name of the date field
-            endField: "Date_",
-            // interval: {
-            //   unit: "days"
-            // }
-          };
+          // Increase wall height by 30 meters
+          const vv = layer.renderer && layer.renderer.visualVariables;
+          if (layer.title === "PerimeterJoin_Merge" && vv && vv.length) {
+            vv[1].valueExpression = "$feature.Height / 1.5 + 100";
+          }
 
-          layerView.filter = {
-            timeExtent: timeSlider.timeExtent
-          };
-          timeSlider.watch("timeExtent", function(value) {
-            // update layerview filter to reflect current timeExtent
-            var start = new Date(Date.UTC(2018, 10, 7, 0, 0));// new Date(value.start);
-            var end = new Date(value.start);
-            end = end.setDate(end.getDate() + 1);
-            layerView.filter = {
-              timeExtent: {
-                start,
-                end
-              }
+          view.whenLayerView(layer).then(function(lv) {
+
+            layer.timeInfo = {
+              startField: "Date_",
+              endField: "Date_",
             };
+
+            layerViews.push(lv);
+            updateLayerViews(sliderStart);
           });
         });
+      });
+
+      timeSlider.watch("timeExtent", function(value) {
+        // update layerview filter to reflect current timeExtent
+        updateLayerViews(value.start);
       });
 
       view.when().then(function() {
@@ -116,9 +135,7 @@
         //view.popup.watch("features", console.log.bind("Popup"));
       });
 
-
     });
-
   </script>
 
 </head>
